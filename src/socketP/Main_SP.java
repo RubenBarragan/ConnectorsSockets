@@ -13,8 +13,8 @@ import java.sql.Connection;
  */
 public class Main_SP {
 
-    static String externalIP = "10.0.5.232";
-    static String localIP = "10.0.5.127";
+    static String externalIP = "192.168.1.72";
+    static String localIP = "192.168.1.69";
 
     /**
      * @param args the command line arguments
@@ -43,16 +43,14 @@ public class Main_SP {
         
         testBDConnection();
         
+        //socket para conectarse con la otra base de datos.
+        Server_Socket otraBD = new Server_Socket(4053, externalIP, localIP);
+        //socket para conectarse con la otra base de datos.
+        Server_Socket otraBDrecovery = new Server_Socket(4052, externalIP, localIP);
+        
         //socket para recibir peticiones
         Server_Socket peticiones = new Server_Socket(4050, externalIP, localIP);
-
-        //Socket para recibir actualizaciones
-        Server_Socket actualizadorBT = new Server_Socket(4060, externalIP, localIP);
-        
-        //socket para conectarse con la otra base de datos.
-        Server_Socket otraBD = new Server_Socket(4070, externalIP, localIP);
-        
-        //socket para conectarse con la otra base de datos.
-        Server_Socket otraBDrecovery = new Server_Socket(4080, externalIP, localIP);
+        //Socket to receive updates.
+        Server_Socket actualizadorBT = new Server_Socket(4051, externalIP, localIP);
     }
 }

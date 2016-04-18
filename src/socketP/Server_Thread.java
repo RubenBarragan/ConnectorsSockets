@@ -17,6 +17,7 @@ import java.rmi.registry.Registry;
 import java.util.logging.Level;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.logging.Logger;
 
 /**
@@ -45,11 +46,11 @@ public class Server_Thread extends Thread {
     }
 
     public void sincronizarBDsEnviar() {
-        ((ToDBconnection) new ToDBconnection("Sincronizar", externalIP, "", "", "", "", "")).start();
+        ((ToDBconnection) new ToDBconnection("synchronize", externalIP, "", "", "", "", "")).start();
     }
 
     public void sincronizarBDsDeVuelta() {
-        ((ToDBconnection) new ToDBconnection("Sincronizar", externalIP, "vuelta", "", "", "", "")).start();
+        ((ToDBconnection) new ToDBconnection("synchronize", externalIP, "vuelta", "", "", "", "")).start();
     }
 
     public void disconnectClient() {
@@ -61,39 +62,49 @@ public class Server_Thread extends Thread {
         }
     }
 
-    public String insertPersonLocal(String ibt, String name, String password) {
-        String Act = "Acnowledge";
+    public String insertPerson(String ibt, String name, String password) {
+
+        String returnedQuery = "Acnowledge";
         ConnectBD cbd = new ConnectBD();
         try {
-            Connection sqlConn = cbd.connectBD();
-            Statement stmt = sqlConn.createStatement();
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+            //devices is the table's name.
             stmt.executeUpdate("INSERT INTO `locator`.`devices` (`id_bluetooth`, `name`, `password`) VALUES ('" + ibt + "', '" + name + "', '" + password + "')");
-            sqlConn.close();
+            System.out.println("Person inserted");
+
+            con.close();
         } catch (SQLException ex) {
-            Act = "FalloLocal";
-            System.out.println("Inserting Person ... FAILED");
+            returnedQuery = "Error";
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return Act;
+
+        return returnedQuery;
     }
 
-    public String checkID(String idBT, String name, String password) {
-        String trueID = "false";
+    public boolean checkID(String idBT, String name, String password) {
+        boolean trueID = false;
 
         ConnectBD cbd = new ConnectBD();
         try {
-            Connection sqlConn = cbd.connectBD();
-            Statement stmt = sqlConn.createStatement();
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
             ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "'");
+
             while (rs.next()) {
                 if (rs.getString(2).equals(idBT) && rs.getString(3).equals(name) && rs.getString(6).equals(password)) {
-                    trueID = "true";
+                    trueID = true;
                 }
             }
-            sqlConn.close();
+            con.close();
+
             return trueID;
         } catch (SQLException ex) {
-            trueID = "Cambiar";
-            System.out.println("Check ID ... FAILED");
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         }
         return trueID;
     }
@@ -116,25 +127,35 @@ public class Server_Thread extends Thread {
         return ID_Info;
     }
 
-    public String BuscarPorSeccion(String lugar) {
-        String ID_Info = "";
+    public String searchArea(String area) {
+        String data = "";
         ConnectBD cbd = new ConnectBD();
         try {
-            Connection sqlConn = cbd.connectBD();
-            Statement stmt = sqlConn.createStatement();
-            ResultSet rs = stmt.executeQuery("select * from devices where lugar = '" + lugar + "'");
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices where lugar = '" + area + "'");
+
             while (rs.next()) {
-                ID_Info = ID_Info + rs.getString(3) + "#" + rs.getString(4) + "#" + rs.getString(5) + "//";
+                data += rs.getString(2) + "#" + rs.getString(3) + "#" + rs.getString(4) + "#" + rs.getString(5) + "#";
             }
-            if (ID_Info.equals("")) {
-                ID_Info = "NoExiste";
-            }
-            sqlConn.close();
+            data = deleteLastChar(data);
+            con.close();
         } catch (SQLException ex) {
-            ID_Info = "Cambiar";
-            System.out.println("Buscar Persona ... FAILED");
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return ID_Info;
+
+        return data; //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
+    }
+
+    public String deleteLastChar(String s) {
+        if (!s.isEmpty()) {
+            return s.substring(0, s.length() - 1);
+        } else {
+            return s;
+        }
     }
 
     public String myUbicacion(String idBT) {
@@ -178,169 +199,160 @@ public class Server_Thread extends Thread {
         return IDs_Info;
     }
 
-    public String checkIDexist(String idBT, String name, String password) {
-        String trueID = "false";
+    public boolean checkIDexist(String idBT, String name, String password) {
+        boolean trueID = false;
+
         ConnectBD cbd = new ConnectBD();
         try {
             Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
             Statement stmt = con.createStatement();
+
+            //devices is the table's name.
             ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "'");
+
             if (rs.next()) {
-                trueID = "true";
-            }
-            Statement stmt2 = con.createStatement();
-            ResultSet rs2 = stmt2.executeQuery("select * from devices where name = '" + name + "'");
-            if (rs2.next()) {
-                trueID = "true";
+                trueID = true;
             }
             con.close();
         } catch (SQLException ex) {
-            trueID = "Cambiar";
-            System.out.println("Check ID Exist ... FAILED");
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         return trueID;
+    }
+
+    public String getDate() {
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        //System.out.println(sdf.format(cal.getTime()));
+        return sdf.format(cal.getTime());
     }
 
     @Override
     public void run() {
-        String incommingMsg = "";
+        String msg = "";
         try {
             //Receive the incomming message from the client
-            incommingMsg = fromClient.readUTF();
-            System.out.println("Message Recived: " + incommingMsg);
-            String[] argsw = incommingMsg.split("#");
+            msg = fromClient.readUTF();
+            System.out.println("Message Recived: " + msg);
+            String[] dataSet = msg.split("#");
 
-            switch (argsw[0]) {
-                case "Ingresar":
-                    String validID = checkID(argsw[1], argsw[2], argsw[3]);
-                    if (validID.equals("true")) {
-                        toClient.writeUTF("Ingresa");
-                    } else if (validID.equals("false")) {
+            switch (dataSet[0]) {
+                case "ingresar":
+                    //Check if the user and password match.
+                    if (checkID(dataSet[1], dataSet[2], dataSet[3])) {
+                        toClient.writeUTF("ingresa");
+                    } else {
                         toClient.writeUTF("noIngresa");
-                    } else if (validID.equals("Cambiar")) {
-                        toClient.writeUTF("Cambiar");
                     }
                     break;
-                case "Registrar":
+                case "registrar":
                     //0_registrar  1_idbt   2_nombre    3_contrasena
-                    String existID = checkIDexist(argsw[1], argsw[2], argsw[3]);
-                    if (existID.equals("false")) {
-                        insertPersonLocal(argsw[1], argsw[2], argsw[3]);
-                        toClient.writeUTF("Registrado");
-                        //                      ToDBconnection( _accion,       _ externalIP, _idBT,   _nombre,  _lugar,  _fecha,  _pass)
-                        ((ToDBconnection) new ToDBconnection("RegistrarExterno", externalIP, argsw[1], argsw[2], "", "", argsw[3])).start();
-
-                    } else if (existID.equals("true")) {
-                        toClient.writeUTF("yaExiste");
-                    } else if (existID.equals("Cambiar")) {
-                        toClient.writeUTF("Cambiar");
+                    //Check if the person already exists.
+                    if (!checkIDexist(dataSet[1], dataSet[2], dataSet[3])) {
+                        insertPerson(dataSet[1], dataSet[2], dataSet[3]);
+                        toClient.writeUTF("signUp");
+                        ((ToDBconnection) new ToDBconnection("registerExternalBD", externalIP, dataSet[1], dataSet[2], "", "", dataSet[3])).start();
+                    } else {
+                        toClient.writeUTF("userExists");
                     }
                     break;
-                case "BuscarPersona":
-                    String personaInfo = buscarPersona(argsw[1]);
-                    toClient.writeUTF(personaInfo);
+                case "searchPerson":
+                    String persona = buscarPersona(dataSet[1]);
+                    toClient.writeUTF(persona); //notFound if user doesn't exist and id_bluetooth#name#lugar#date
                     break;
-                case "BuscarTodos":
+                case "searchAll":
                     String Todos = buscarTodos();
-                    toClient.writeUTF(Todos);
+                    toClient.writeUTF(Todos); //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
                     break;
-                case "Seccion":
-
-                    String Seccion = BuscarPorSeccion(argsw[1]);
-                    toClient.writeUTF(Seccion);
+                case "searchArea":
+                    String userInArea = searchArea(dataSet[1]);
+                    toClient.writeUTF(userInArea); //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
                     break;
+                /*
+                 case "Servicios":
+                 String myUbicacion = myUbicacion(argsw[1]);
 
-                case "Servicios":
-                    String myUbicacion = myUbicacion(argsw[1]);
-
-                    switch (myUbicacion) {
-                        case "Laboratorio":
-                            toClient.writeUTF("Laboratorio\n//nImpresora//Biblioteca Virtual//Escaner//");
-                            break;
-                        case "Biblioteca":
-                            toClient.writeUTF("Bilbioteca\n//Impresora//Biblioteca Virtual//Escaner//");
-                            break;
-                        case "Comedor":
-                            toClient.writeUTF("Comedor\n//Biblioteca Virtual//");
-                            break;
-                        case "Salon":
-                            toClient.writeUTF("Salon\n//Biblioteca Virtual//Proyector//");
-                            break;
-                        default:
-                            toClient.writeUTF("Cambiar");
-                            break;
-                    }
-                    break;
-                    
+                 switch (myUbicacion) {
+                 case "Laboratorio":
+                 toClient.writeUTF("Laboratorio\n//nImpresora//Biblioteca Virtual//Escaner//");
+                 break;
+                 case "Biblioteca":
+                 toClient.writeUTF("Bilbioteca\n//Impresora//Biblioteca Virtual//Escaner//");
+                 break;
+                 case "Comedor":
+                 toClient.writeUTF("Comedor\n//Biblioteca Virtual//");
+                 break;
+                 case "Salon":
+                 toClient.writeUTF("Salon\n//Biblioteca Virtual//Proyector//");
+                 break;
+                 default:
+                 toClient.writeUTF("Cambiar");
+                 break;
+                 }
+                 break;
+                 */
                 case "SincVuelta":
                     sincronizarBDsDeVuelta();
                     toClient.writeUTF("Cambiar");
                     break;
-
-                case "SincronizarLocal":
+                case "localSynchronize":
                     ServerRMI theServer = new ServerRMI("", externalIP);
                     //ToDBconnection(    0 _accion,   1 _externalIP,      2 _idBT,     3 _nombre,      4 _lugar,       5 _fecha,       6 _pass)
-                    theServer.recoveryBD(argsw[2], argsw[3], argsw[4], argsw[5], argsw[6]);
+                    theServer.recoveryBD(dataSet[2], dataSet[3], dataSet[4], dataSet[5], dataSet[6]);
 
                     toClient.writeUTF("Cambiar");
                     break;
 
-                case "ActualizarExterno":
+                case "updateExternalDB":
                     //ToDBconnection(0 _accion,      1 _externalIP,      2 _idBT,     3 _nombre,     4 _lugar,     5 _fecha,      6 _pass)
                     if (PreviusClass.conn != null) {
                         Statement stmt = PreviusClass.conn.createStatement();
-                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + argsw[4] + "',`datetime`='" + argsw[5] + "' WHERE id_bluetooth='" + argsw[2] + "'");
+                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + dataSet[4] + "',`datetime`='" + dataSet[5] + "' WHERE id_bluetooth='" + dataSet[2] + "'");
                         System.out.println("Local from eternal update performed ... OK.");
                         toClient.writeUTF("Acknowledge");
                     } else {
                         Connection newCon = PreviusClass.cbd.connectBD();
                         PreviusClass.conn = newCon;
                         Statement stmt = PreviusClass.conn.createStatement();
-                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + argsw[4] + "',`datetime`='" + argsw[5] + "' WHERE id_bluetooth='" + argsw[2] + "'");
+                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + dataSet[4] + "',`datetime`='" + dataSet[5] + "' WHERE id_bluetooth='" + dataSet[2] + "'");
                         toClient.writeUTF("Acknowledge");
                     }
                     break;
 
-                case "RegistrarExterno":
+                case "registerExternalBD":
                     //checkIDexist   idbt   nombre    contrasena  pide...
                     //ToDBconnection(0 _accion,      1 _externalIP,      2 _idBT,     3 _nombre,     4 _lugar,     5 _fecha,      6 _pass)
-                    String itExistID = checkIDexist(argsw[2], argsw[3], argsw[6]);
-                    if (itExistID.equals("false")) {
-                        insertPersonLocal(argsw[2], argsw[3], argsw[6]);
-                        toClient.writeUTF("Registrado");
-                    } else if (itExistID.equals("true")) {
-                        toClient.writeUTF("yaExiste");
-                    } else if (itExistID.equals("Cambiar")) {
-                        toClient.writeUTF("Cambiar");
+                    
+                    if (!checkIDexist(dataSet[2], dataSet[3], dataSet[6])) {
+                        insertPerson(dataSet[2], dataSet[3], dataSet[6]);
+                        toClient.writeUTF("signUp");
+                        //toClient.writeUTF("Registrado");
+                    } else {
+                        toClient.writeUTF("userExists");
+                        //toClient.writeUTF("yaExiste");
                     }
                     break;
 
-                case "Actualizar":
-                    java.util.Date date = new java.util.Date();
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd h:mm:ss");
-                    String formattedDate = sdf.format(date);
-
+                case "updateLocation":
+                    //System.out.println("Message Recived: " + msg);
+                    String ibt = dataSet[1];
+                    String lugar = dataSet[2];
+                    String datetime = getDate();
                     //Create the query to the local database.
                     if (PreviusClass.conn != null) {
                         Statement stmt = PreviusClass.conn.createStatement();
-                        if (argsw.length > 2) {
-                            stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + argsw[2] + "',`datetime`='" + formattedDate + "' WHERE id_bluetooth='" + argsw[1] + "'"
-                            );
-                        }
-                        //                      ToDBconnection( _accion,       _ externalIP, _idBT,   _nombre,  _lugar,  _fecha,  _pass)
-                        ((ToDBconnection) new ToDBconnection("ActualizarExterno", externalIP, argsw[1], "", argsw[2], formattedDate, "")).start();
+                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + lugar + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
+                        ((ToDBconnection) new ToDBconnection("updateExternalDB", externalIP, ibt, "", lugar, datetime, "")).start(); //Check this.
                         System.out.println("Local update performed ... OK.");
                         toClient.writeUTF("Acknowledge");
                     } else {
                         Connection newCon = PreviusClass.cbd.connectBD();
                         PreviusClass.conn = newCon;
                         Statement stmt = PreviusClass.conn.createStatement();
-                        if (argsw.length > 2) {
-                            stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + argsw[2] + "',`datetime`='" + formattedDate + "' WHERE id_bluetooth='" + argsw[1] + "'"
-                            );
-                        }
-                        //                      ToDBconnection( _accion,       _ externalIP, _idBT,   _nombre,  _lugar,  _fecha,  _pass)
-                        ((ToDBconnection) new ToDBconnection("ActualizarExterno", externalIP, argsw[1], "", argsw[2], formattedDate, "")).start();
+                        stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + lugar + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
+                        ((ToDBconnection) new ToDBconnection("updateExternalDB", externalIP, dataSet[1], "", dataSet[2], datetime, "")).start(); //Check this.
                         toClient.writeUTF("Acknowledge");
                     }
 
@@ -362,7 +374,7 @@ public class Server_Thread extends Thread {
             //DB Conection failed... trying to re conect
             try {
                 System.out.println("DB connection ... FAILED");
-                toClient.writeUTF("Cambiar");
+                toClient.writeUTF("No DB Connection");
                 Connection conn = PreviusClass.cbd.connectBD();
                 PreviusClass.conn = conn;
             } catch (IOException ex1) {

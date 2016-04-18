@@ -28,12 +28,12 @@ public class Server_Socket extends Thread {
     boolean sendBD = false;
     ConnectBD cbd;
     Connection conn;
-    int puerto;
+    int port;
     int backupLapse = 5;
 
     public Server_Socket(int _puerto, String externalIP, String _localIP) {
         this.externalIP = externalIP;
-        this.puerto = _puerto;
+        this.port = _puerto;
         this.localIP = _localIP;
         this.start();
     }
@@ -41,9 +41,8 @@ public class Server_Socket extends Thread {
     public void run() {
 
         try {
-            theServer = new ServerSocket(puerto);
-
-            System.out.println("Server socket initializing ... OK");
+            theServer = new ServerSocket(port);
+            System.out.println("Server socket initializing in port " + port + "... [OK]");
 
             //try {
             cbd = new ConnectBD();
@@ -51,6 +50,7 @@ public class Server_Socket extends Thread {
 
             while (true) {
                 Socket theClient;
+                System.out.println("Waiting for connection in port "+port+"...[OK]");
                 theClient = theServer.accept();
 
                 System.out.println("New incoming connection " + theClient);
