@@ -32,10 +32,6 @@ public class Main_SP {
         }
 
     }
-    
-    public static void replicateDatabases(){
-        
-    }
 
     public static void main(String[] args) {
 

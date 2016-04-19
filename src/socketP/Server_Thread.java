@@ -209,7 +209,7 @@ public class Server_Thread extends Thread {
             Statement stmt = con.createStatement();
 
             //devices is the table's name.
-            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "'");
+            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "' and name='" + name + "'");
 
             if (rs.next()) {
                 trueID = true;
@@ -324,7 +324,7 @@ public class Server_Thread extends Thread {
                 case "registerExternalBD":
                     //checkIDexist   idbt   nombre    contrasena  pide...
                     //ToDBconnection(0 _accion,      1 _externalIP,      2 _idBT,     3 _nombre,     4 _lugar,     5 _fecha,      6 _pass)
-                    
+
                     if (!checkIDexist(dataSet[2], dataSet[3], dataSet[6])) {
                         insertPerson(dataSet[2], dataSet[3], dataSet[6]);
                         toClient.writeUTF("signUp");
