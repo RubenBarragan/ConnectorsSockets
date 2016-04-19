@@ -13,8 +13,8 @@ import java.sql.Connection;
  */
 public class Main_SP {
 
-    static String externalIP = "192.168.1.72";
-    static String localIP = "192.168.1.69";
+    static String externalIP = "10.0.5.209";
+    static String localIP = "10.0.5.215";
 
     /**
      * @param args the command line arguments
@@ -32,6 +32,10 @@ public class Main_SP {
         }
 
     }
+    
+    public static void replicateDatabases(){
+        
+    }
 
     public static void main(String[] args) {
 
@@ -43,10 +47,12 @@ public class Main_SP {
         
         testBDConnection();
         
+        
+        
         //socket para conectarse con la otra base de datos.
-        Server_Socket otraBD = new Server_Socket(4053, externalIP, localIP);
+        //Server_Socket otraBD = new Server_Socket(4053, externalIP, localIP);
         //socket para conectarse con la otra base de datos.
-        Server_Socket otraBDrecovery = new Server_Socket(4052, externalIP, localIP);
+        //Server_Socket otraBDrecovery = new Server_Socket(4052, externalIP, localIP);
         
         //socket para recibir peticiones
         Server_Socket peticiones = new Server_Socket(4050, externalIP, localIP);

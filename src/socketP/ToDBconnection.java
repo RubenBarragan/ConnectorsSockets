@@ -102,7 +102,7 @@ public class ToDBconnection extends Thread {
             }
 
         } catch (IOException ex) {
-            System.out.println("Fallo conexion a socket, BD externa ... Socket P");
+            //System.out.println("Fallo conexion a socket, BD externa ... Socket P");
         }
     }
 }
